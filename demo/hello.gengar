@@ -1,0 +1,10 @@
+main(): number {
+    const text: string =  "hello gengar!";
+    mut megaText: string = toUpperCase(text);
+    print(megaText);
+    return 0;
+}
+
+fn toUpperCase(input: string): string {
+    return input.toUpperCase();
+}

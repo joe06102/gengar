@@ -1,0 +1,11 @@
+{
+  "extends": "@tsconfig/node12/tsconfig.json",
+  "include": ["src", "src/**/*.json"],
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "declaration": true,
+    "resolveJsonModule": true
+  }
+}
