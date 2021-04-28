@@ -14,6 +14,16 @@
       "sourceMaps": true,
       "runtimeArgs": ["run-script", "ggc"],
       "cwd": "/home/joe/repos/gengar"
+    },
+    {
+      "name": "hello",
+      "type": "node",
+      "request": "launch",
+      "protocol": "inspector",
+      "stopOnEntry": true,
+      "sourceMaps": true,
+      "program": "/home/joe/repos/gengar/demo/hello.js",
+      "cwd": "/home/joe/repos/gengar/demo"
     }
   ]
 }

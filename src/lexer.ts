@@ -1,13 +1,13 @@
 import { Token, TokenTypes as tt, TokenMatcher } from "./token";
 
 export class GengarLexer {
-  private line = 0;
+  private line = 1;
   private col = 0;
   private pos = 0;
   private originSource = "";
   private savePoint = {
     source: "",
-    line: 0,
+    line: 1,
     col: 0,
     pos: 0,
     token: undefined,
@@ -65,6 +65,8 @@ export class GengarLexer {
       t = new Token(tt.Return, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.Dot)?.[1])) {
       t = new Token(tt.Dot, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.Debugger)?.[1])) {
+      t = new Token(tt.DEBUGGER, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.ID)?.[1])) {
       t = new Token(tt.ID, match!, this.line, this.col);
     } else {
@@ -83,7 +85,7 @@ export class GengarLexer {
     this.source = this.source.substring(match?.length ?? 0);
 
     if (t?.Type === tt.CRLF) {
-      this.line++;
+      this.line += match?.length;
       this.col = 0;
     }
 

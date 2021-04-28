@@ -1,5 +1,6 @@
 main(): number {
     const text: string =  "hello gengar!";
+    debugger;
     mut megaText: string = toUpperCase(text);
     print(megaText);
     return 0;

@@ -1,6 +1,7 @@
 export enum TokenTypes {
   Var,
   ID,
+  DEBUGGER,
   Return,
   StringLiteral,
   NumberLiteral,
@@ -30,6 +31,7 @@ export class Token {
 }
 
 export const TokenMatcher = {
+  Debugger: /^(debugger)/,
   Var: /^(mut|const)/,
   ID: /^(\w+)/,
   Return: /^(return)/,

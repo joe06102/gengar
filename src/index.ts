@@ -1,32 +1,28 @@
 import FS from "fs";
 import Path from "path";
-import { Program } from "./ast";
-import { GengarLexer } from "./lexer";
-import { GengarParser } from "./parser";
+import { GengarCompiler } from "./compiler";
 
-export class GengarCompiler {
-  private lexer: GengarLexer;
-  private parser: GengarParser;
-  private program: Program | undefined;
-
-  constructor(source: string) {
-    this.lexer = new GengarLexer(source);
-    this.parser = new GengarParser(this.lexer);
-  }
-
-  Compile() {
-    this.program = this.parser.Parse();
-  }
-
-  Generate() {
-    return this.program?.generate();
-  }
-}
+const SourceFile = "hello.gengar";
+const SourceFilePath = Path.resolve(__dirname, "../demo", SourceFile);
+const JSFile = "hello.js";
+const JSFilePath = Path.resolve(__dirname, "../demo", JSFile);
+const SourceMapFile = "hello.js.map";
+const SourceMapFilePath = Path.resolve(__dirname, "../demo", SourceMapFile);
 
 const ggc = new GengarCompiler(
-  FS.readFileSync(Path.resolve(__dirname, "../demo/hello.gengar"), {
+  FS.readFileSync(SourceFilePath, {
     encoding: "utf-8",
-  })
+  }),
+  SourceFile
 );
-ggc.Compile();
-console.log(ggc.Generate());
+
+const compileResult = ggc
+  .Compile()
+  .Generate()
+  ?.toStringWithSourceMap({ file: SourceMapFile });
+
+FS.writeFileSync(
+  JSFilePath,
+  compileResult?.code + `\n//# sourceMappingURL=${SourceMapFile}`
+);
+FS.writeFileSync(SourceMapFilePath, compileResult?.map as any);
