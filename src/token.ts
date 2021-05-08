@@ -1,8 +1,6 @@
 export enum TokenTypes {
-  Var,
+  Keywords,
   ID,
-  DEBUGGER,
-  Return,
   StringLiteral,
   NumberLiteral,
   BoolLiteral,
@@ -28,11 +26,14 @@ export class Token {
     public Line: number,
     public Col: number
   ) {}
+
+  toString() {
+    return JSON.stringify(this, null, 2);
+  }
 }
 
 export const TokenMatcher = {
-  Debugger: /^(debugger)/,
-  Var: /^(mut|const)/,
+  Keywords: /^(if|while|return|debugger|const|mut)/,
   ID: /^(\w+)/,
   Return: /^(return)/,
   StringLiteral: /^("[^"]*")/,

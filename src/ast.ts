@@ -19,21 +19,43 @@ export abstract class ASTNode {
   }
 }
 
+export abstract class Statement extends ASTNode {}
+
+export abstract class Expression extends Statement {}
+
+export class ExpressionStatement extends Statement {
+  Generate(): SourceNode {
+    return this.CreateSourceNode().add(this.Expression.Generate()).add(";");
+  }
+  constructor(public Expression: Expression) {
+    super(
+      Expression.Line,
+      Expression.Col,
+      NodeType.ExpressionStatement,
+      Expression.File!
+    );
+  }
+}
+
 export enum NodeType {
   Unknown,
   Program,
   MainDeclare,
+  FunctionDeclare,
   TypeAnotation,
   VarDeclare,
+  IfStatement,
+  WhileStatement,
+  ReturnStatement,
+  DebuggerStatement,
+  ExpressionStatement,
+  AssignExpression,
   CallExpression,
   Identifier,
-  ReturnStatement,
-  FunctionDeclare,
   MemberExpression,
   StringLiteral,
   NumberLiteral,
   BoolLiteral,
-  Debugger,
 }
 
 export class Program extends ASTNode {
@@ -97,7 +119,7 @@ export class TypeAnotation extends ASTNode {
   }
 }
 
-export class VarDeclare extends ASTNode {
+export class VarDeclare extends Statement {
   Generate(): SourceNode {
     return this.CreateSourceNode()
       .add(this.Kind === "mut" ? "let " : "const ")
@@ -118,12 +140,87 @@ export class VarDeclare extends ASTNode {
   }
 }
 
-export class CallExpression extends ASTNode {
+export class IfStatement extends Statement {
+  Generate(): SourceNode {
+    let ret = this.CreateSourceNode()
+      .add("if(")
+      .add(this.Test.Generate())
+      .add("){\n")
+      .add(this.Consequent.Generate())
+      .add("\n}");
+
+    if (this.Alternate) {
+      ret.add("else").add(this.Alternate.Generate());
+    }
+
+    return ret;
+  }
+  constructor(
+    line: number,
+    col: number,
+    file: string,
+    public Test: Expression,
+    public Consequent: Statement,
+    public Alternate?: Statement
+  ) {
+    super(line, col, NodeType.VarDeclare, file);
+  }
+}
+
+export class WhileStatement extends Statement {
+  Generate(): SourceNode {
+    return this.CreateSourceNode()
+      .add("while(")
+      .add(this.Test.Generate())
+      .add("){\n")
+      .add(this.Body.Generate())
+      .add("\n}");
+  }
+
+  constructor(
+    line: number,
+    col: number,
+    file: string,
+    public Test: Expression,
+    public Body: Statement
+  ) {
+    super(line, col, NodeType.VarDeclare, file);
+  }
+}
+
+export class AssignExpression extends Expression {
+  Generate(): SourceNode {
+    return this.CreateSourceNode()
+      .add(this.Id.Generate())
+      .add(" = ")
+      .add(this.Init.Generate());
+  }
+  constructor(
+    public Id: Identifier | MemberExpression,
+    public Init: Expression,
+    line: number,
+    col: number,
+    file: string
+  ) {
+    super(line, col, NodeType.CallExpression, file);
+  }
+}
+
+export class CallExpression extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode()
       .add(this.Id.Generate())
       .add("(")
-      .add(this.Args.map((n) => n.Generate()))
+      .add(
+        this.Args.reduce((args, n, index) => {
+          args.push(n.Generate());
+
+          if (index !== this.Args.length - 1) {
+            args.push(",");
+          }
+          return args;
+        }, [] as any[])
+      )
       .add(")");
   }
   constructor(
@@ -137,7 +234,7 @@ export class CallExpression extends ASTNode {
   }
 }
 
-export class Identifier extends ASTNode {
+export class Identifier extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode().add(this.Name);
   }
@@ -146,7 +243,7 @@ export class Identifier extends ASTNode {
   }
 }
 
-export class MemberExpression extends ASTNode {
+export class MemberExpression extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode()
       .add(this.Object.Generate())
@@ -164,12 +261,12 @@ export class MemberExpression extends ASTNode {
   }
 }
 
-export class ReturnStatement extends ASTNode {
+export class ReturnStatement extends Statement {
   Generate(): SourceNode {
     return this.CreateSourceNode()
       .add("\nreturn (")
       .add(this.Argument.Generate())
-      .add(")");
+      .add(");");
   }
   constructor(
     public Argument: ASTNode,
@@ -181,7 +278,7 @@ export class ReturnStatement extends ASTNode {
   }
 }
 
-export class StringLiteral extends ASTNode {
+export class StringLiteral extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode().add(this.Val);
   }
@@ -190,7 +287,7 @@ export class StringLiteral extends ASTNode {
   }
 }
 
-export class NumberLiteral extends ASTNode {
+export class NumberLiteral extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode().add(this.Val);
   }
@@ -199,7 +296,7 @@ export class NumberLiteral extends ASTNode {
   }
 }
 
-export class BooleanLiteral extends ASTNode {
+export class BooleanLiteral extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode().add(this.Val);
   }
@@ -208,11 +305,11 @@ export class BooleanLiteral extends ASTNode {
   }
 }
 
-export class DebuggerNode extends ASTNode {
+export class DebuggerNode extends Statement {
   Generate(): SourceNode {
     return this.CreateSourceNode().add("\n").add(this.Val).add(";");
   }
   constructor(public Val: string, line: number, col: number, file: string) {
-    super(line, col, NodeType.Debugger, file);
+    super(line, col, NodeType.DebuggerStatement, file);
   }
 }

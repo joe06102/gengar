@@ -41,8 +41,8 @@ export class GengarLexer {
       t = new Token(tt.RightBracket, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.CRLF)?.[1])) {
       t = new Token(tt.CRLF, match!, this.line, this.col);
-    } else if ((match = this.source.match(TokenMatcher.Var)?.[1])) {
-      t = new Token(tt.Var, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.Keywords)?.[1])) {
+      t = new Token(tt.Keywords, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.WhiteSpace)?.[1])) {
       t = new Token(tt.WhiteSpace, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.Colon)?.[1])) {
@@ -61,12 +61,8 @@ export class GengarLexer {
       t = new Token(tt.Semicolon, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.Comma)?.[1])) {
       t = new Token(tt.Comma, match!, this.line, this.col);
-    } else if ((match = this.source.match(TokenMatcher.Return)?.[1])) {
-      t = new Token(tt.Return, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.Dot)?.[1])) {
       t = new Token(tt.Dot, match!, this.line, this.col);
-    } else if ((match = this.source.match(TokenMatcher.Debugger)?.[1])) {
-      t = new Token(tt.DEBUGGER, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.ID)?.[1])) {
       t = new Token(tt.ID, match!, this.line, this.col);
     } else {
