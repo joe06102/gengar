@@ -10,5 +10,8 @@ A toy language that targeting javascript just for fun!
 - ✔ Call Expression
 - ✔ Sourcemap
 - ✔ If Statement
-- ❌ While Statement
+- ✔ While Statement
+- ❌ Unary Expression
+- ❌ Binary Expression
+- ❌ Ternary Expression
 - ❌ Type Checker

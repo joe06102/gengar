@@ -39,18 +39,15 @@ export class ExpressionStatement extends Statement {
 
 export class BlockStatement extends Statement {
   Generate(): SourceNode {
-    return this.CreateSourceNode().add('{\n').add(this.Body.map(n => n.Generate())).add("\n}");
+    return this.CreateSourceNode()
+      .add("{\n")
+      .add(this.Body.map((n) => n.Generate()))
+      .add("\n}");
   }
   constructor(public Body: Statement[], file: string) {
-    super(
-      1,
-      0,
-      NodeType.BlockStatement,
-      file!
-    );
+    super(1, 0, NodeType.BlockStatement, file!);
   }
 }
-
 
 export enum NodeType {
   Unknown,
@@ -92,7 +89,12 @@ export class MainDeclare extends ASTNode {
       .add(this.Body.Generate())
       .add(")();\n");
   }
-  constructor(public Body: BlockStatement, line: number, col: number, file: string) {
+  constructor(
+    public Body: BlockStatement,
+    line: number,
+    col: number,
+    file: string
+  ) {
     super(line, col, NodeType.MainDeclare, file);
   }
 }
@@ -105,7 +107,7 @@ export class FunctionDeclare extends ASTNode {
       .add("(")
       .add(this.Params.map((p) => p.Generate()))
       .add(") ")
-      .add(this.Body.Generate())
+      .add(this.Body.Generate());
   }
   constructor(
     public Id: Identifier,
@@ -144,7 +146,7 @@ export class VarDeclare extends Statement {
       .add(";");
   }
   constructor(
-    public Kind: "mut" | "const",
+    public Kind: string,
     public Id: Identifier,
     public Init: ASTNode,
     line: number,
@@ -161,7 +163,7 @@ export class IfStatement extends Statement {
       .add("\nif(")
       .add(this.Test.Generate())
       .add(")")
-      .add(this.Consequent.Generate())
+      .add(this.Consequent.Generate());
 
     if (this.Alternate) {
       ret.add("else ").add(this.Alternate.Generate());
@@ -187,7 +189,7 @@ export class WhileStatement extends Statement {
       .add("while(")
       .add(this.Test.Generate())
       .add(")")
-      .add(this.Body.Generate())
+      .add(this.Body.Generate());
   }
 
   constructor(

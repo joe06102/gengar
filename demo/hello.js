@@ -3,11 +3,8 @@ function print(...args) {
 }
 (function () {
   const text = "hello gengar!";
-  ("hello gengar!");
   let num = 123;
-  123;
   num = 456;
-  456;
   debugger;
   let megaText = toUpperCase(text);
   print(text, "evolves to", megaText);
@@ -33,12 +30,17 @@ function print(...args) {
   } else {
     print("else");
   }
+  let i = 1;
+  while (i) {
+    i = 0;
+    print(i);
+  }
+  return 0;
 })();
 function toUpperCase(input) {
   return input.toUpperCase();
 }
 function isValid(input) {
   return input;
-  input;
 }
 //# sourceMappingURL=hello.js.map

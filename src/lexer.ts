@@ -45,8 +45,6 @@ export class GengarLexer {
       t = new Token(tt.Keywords, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.WhiteSpace)?.[1])) {
       t = new Token(tt.WhiteSpace, match!, this.line, this.col);
-    } else if ((match = this.source.match(TokenMatcher.Colon)?.[1])) {
-      t = new Token(tt.Colon, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.TypeAssert)?.[1])) {
       t = new Token(tt.TypeAsset, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.Eq)?.[1])) {
@@ -117,12 +115,12 @@ export class GengarLexer {
     }
   }
 
-  SkipOf(tokenTypes: tt[]): Token[] {
+  SkipOf(tokenTypes: tt[], fromCurrent = false): Token[] {
     let skippedTokens: Token[] = [];
-    let curToken = this.GetToken();
+    let curToken = fromCurrent ? this.CurrentToken : this.GetToken();
 
-    while (tokenTypes.includes(curToken.Type)) {
-      skippedTokens.push(curToken);
+    while (tokenTypes.includes(curToken?.Type!)) {
+      skippedTokens.push(curToken!);
       curToken = this.GetToken();
     }
 

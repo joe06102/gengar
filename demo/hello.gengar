@@ -33,6 +33,12 @@ main(): number {
       print("else");
     }
 
+    mut i: number = 1;
+    while(i) {
+      i = 0;
+      print(i);
+    }
+
     return 0;
 }
 

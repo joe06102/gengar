@@ -49,6 +49,7 @@ export class GengarParser {
   Parse(): Program {
     const body: ASTNode[] = [];
     this.lexer.GetToken();
+    let prevToken = this.lexer.CurrentToken;
 
     while (this.lexer.CurrentToken?.Type !== tt.EOF) {
       if (
@@ -65,7 +66,12 @@ export class GengarParser {
         body.push(this.ParseFn());
       }
 
-      this.lexer.GetToken();
+      if (prevToken !== this.lexer.CurrentToken) {
+        prevToken = this.lexer.CurrentToken;
+        continue;
+      }
+
+      prevToken = this.lexer.GetToken();
     }
 
     return new Program(body, 1, 0, this.sourceFile);
@@ -141,6 +147,8 @@ export class GengarParser {
       }
       prevToken = this.lexer.GetToken();
     }
+    // skip }
+    this.lexer.Skip();
 
     return new BlockStatement(body, this.sourceFile);
   }
@@ -216,42 +224,32 @@ export class GengarParser {
   }
 
   ParseValDeclareStatement(): VarDeclare {
-    let kind: "mut" | "const" = "mut";
+    let kind: string;
     let id: Identifier;
     let init: ASTNode;
-    let line = 1,
-      col = 0;
+    let line = 1;
+    let col = 0;
 
-    while (this.lexer.CurrentToken?.Type !== tt.Semicolon) {
-      if (
-        this.lexer.CurrentToken?.Type === tt.Keywords &&
-        ["const", "mut"].includes(this.lexer.CurrentToken.Val as string)
-      ) {
-        kind = this.lexer.CurrentToken?.Val as any;
-        line = this.lexer.CurrentToken?.Line;
-        col = this.lexer.CurrentToken?.Col;
-      }
+    kind = this.lexer.CurrentToken?.Val! as string;
+    this.lexer.SkipOf([tt.WhiteSpace]);
 
-      if (this.lexer.CurrentToken?.Type === tt.Eq) {
-        this.lexer.SkipOf([tt.WhiteSpace]);
-        init = this.ParseExpression();
-        break;
-      }
-
-      if (
-        this.lexer.CurrentToken?.Type === tt.ID &&
-        this.lexer.Peek().Type === tt.Colon
-      ) {
-        id = new Identifier(
-          this.lexer.CurrentToken.Val as string,
-          this.lexer.CurrentToken.Line,
-          this.lexer.CurrentToken.Col,
-          this.sourceFile
-        );
-      }
-
-      this.lexer.GetToken();
+    if (this.lexer.CurrentToken?.Type !== tt.ID) {
+      throw new UnexpectedTokenError(
+        "identifier",
+        this.lexer.CurrentToken?.Val as string
+      );
     }
+
+    id = new Identifier(
+      this.lexer.CurrentToken.Val as string,
+      this.lexer.CurrentToken.Line,
+      this.lexer.CurrentToken.Col,
+      this.sourceFile
+    );
+    // TODO: Missing TypeAnnotation
+    this.lexer.SkipTo([tt.Eq]);
+    this.lexer.SkipOf([tt.WhiteSpace]);
+    init = this.ParseExpression();
 
     return new VarDeclare(kind, id!, init!, line, col, this.sourceFile);
   }
@@ -312,14 +310,20 @@ export class GengarParser {
   }
 
   ParseWhileStatement(): WhileStatement {
-    throw new Error();
+    let test: Expression;
+    let body: BlockStatement;
+    this.lexer.SkipTo([tt.LeftParenthesis]);
+    this.lexer.Skip();
+    test = this.ParseExpression();
+    this.lexer.SkipTo([tt.LeftBracket]);
+    body = this.ParseBlockStatement();
+
+    return new WhileStatement(test.Line, test.Col, this.sourceFile, test, body);
   }
 
   ParseReturnStatement(): ReturnStatement {
-    if (this.lexer.CurrentToken?.Val === "return") {
-      this.lexer.Skip();
-      this.lexer.SkipOf([tt.WhiteSpace]);
-    }
+    this.lexer.SkipOf([tt.WhiteSpace]);
+    debugger;
     const arg = this.ParseExpression();
 
     return new ReturnStatement(
@@ -340,29 +344,31 @@ export class GengarParser {
   }
 
   ParseLiteralExpression(): StringLiteral | NumberLiteral | BooleanLiteral {
-    if (this.lexer.CurrentToken?.Type == tt.StringLiteral) {
+    const token = this.lexer.CurrentToken;
+    this.lexer.Skip();
+    if (token?.Type == tt.StringLiteral) {
       return new StringLiteral(
-        this.lexer.CurrentToken.Val as string,
-        this.lexer.CurrentToken.Line,
-        this.lexer.CurrentToken.Col,
+        token.Val as string,
+        token.Line,
+        token.Col,
         this.sourceFile
       );
     }
 
-    if (this.lexer.CurrentToken?.Type == tt.NumberLiteral) {
+    if (token?.Type == tt.NumberLiteral) {
       return new NumberLiteral(
-        this.lexer.CurrentToken.Val as string,
-        this.lexer.CurrentToken.Line,
-        this.lexer.CurrentToken.Col,
+        token.Val as string,
+        token.Line,
+        token.Col,
         this.sourceFile
       );
     }
 
-    if (this.lexer.CurrentToken?.Type == tt.BoolLiteral) {
+    if (token?.Type == tt.BoolLiteral) {
       return new BooleanLiteral(
-        this.lexer.CurrentToken.Val as string,
-        this.lexer.CurrentToken.Line,
-        this.lexer.CurrentToken.Col,
+        token.Val as string,
+        token.Line,
+        token.Col,
         this.sourceFile
       );
     }
@@ -389,10 +395,12 @@ export class GengarParser {
   }
 
   ParseIdentifierExpression(): Identifier {
+    const token = this.lexer.CurrentToken;
+    this.lexer.Skip();
     return new Identifier(
-      this.lexer.CurrentToken?.Val as string,
-      this.lexer.CurrentToken?.Line ?? 0,
-      this.lexer.CurrentToken?.Col ?? 0,
+      token?.Val as string,
+      token?.Line ?? 0,
+      token?.Col ?? 0,
       this.sourceFile
     );
   }
@@ -402,6 +410,7 @@ export class GengarParser {
     const col = this.lexer.CurrentToken?.Col ?? 0;
     let id: Identifier | MemberExpression;
     let args: Expression[] = [];
+    let prevToken = this.lexer.CurrentToken;
 
     while (this.lexer.CurrentToken?.Type !== tt.RightParenthesis) {
       if (
@@ -428,7 +437,12 @@ export class GengarParser {
         args.push(this.ParseExpression());
       }
 
-      this.lexer.GetToken();
+      if (prevToken !== this.lexer.CurrentToken) {
+        prevToken = this.lexer.CurrentToken;
+        continue;
+      }
+
+      prevToken = this.lexer.GetToken();
     }
 
     if (!id!) {
