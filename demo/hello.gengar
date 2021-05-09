@@ -5,9 +5,41 @@ main(): number {
     debugger;
     mut megaText: string = toUpperCase(text);
     print(text, "evolves to", megaText);
+
+    if (isValid(num)) {
+      print("if");
+
+      if (isValid(num)) {
+        print("if");
+      } else if (text) {
+        print("else if");
+      } else {
+        print("else");
+      }
+    }
+
+    if (isValid(num)) {
+      print("if");
+
+    } else if (text) {
+      print("else if");
+    }
+
+    if (isValid(num)) {
+      print("if");
+    } else if (text) {
+      print("else if");
+    } else {
+      print("else");
+    }
+
     return 0;
 }
 
 fn toUpperCase(input: string): string {
     return input.toUpperCase();
+}
+
+fn isValid(input: boolean): boolean {
+  return input;
 }

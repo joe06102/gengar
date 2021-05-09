@@ -33,7 +33,7 @@ export class Token {
 }
 
 export const TokenMatcher = {
-  Keywords: /^(if|while|return|debugger|const|mut)/,
+  Keywords: /^(if|else|while|return|debugger|const|mut)/,
   ID: /^(\w+)/,
   Return: /^(return)/,
   StringLiteral: /^("[^"]*")/,

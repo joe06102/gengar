@@ -1,8 +1,9 @@
 import { GengarLexer } from "./lexer";
-import { TokenTypes as tt } from "./token";
+import { Token, TokenTypes as tt } from "./token";
 import {
   AssignExpression,
   ASTNode,
+  BlockStatement,
   BooleanLiteral,
   CallExpression,
   DebuggerNode,
@@ -22,14 +23,16 @@ import {
   VarDeclare,
   WhileStatement,
 } from "./ast";
+import { UnexpectedTokenError } from "./error";
 /**
  * S                -> MAIN | FN
- * MAIN             -> main(): TYPEANNOTATION { BODY }
- * FN               -> fn IDENTIFIER(PARAMS) { BODY }
- * BODY             -> STATEMENT | EXPRESSION
+ * MAIN             -> main(): TYPEANNOTATION BLOCKSTATEMENT
+ * FN               -> fn IDENTIFIER(PARAMS) BLOCKSTATEMENT
+ * BLOCKSTATEMENT   -> { STATEMENT* | EXPRESSION* }
  * STATEMENT        -> VARDECLARE | IF | WHILE | RETURN | DEBUGGER
  * EXPRESSION       -> ASSIGNEXP | CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
  * VARDECLARE       -> VARKIND IDENTIFIER : TYPEANNOTATION = EXPRESSION;
+ * IF               -> if (EXPRESSION) BLOCKSTATEMENT else IF | BLOCKSTATEMENT
  * VARKIND          -> const | mut
  * ASSIGNEXP        -> IDENTIFIER | MEMBEREXP = EXPRESSION
  * CALLEXP          -> IDENTIFIER(EXPRESSION) | MEMBEREXP(EXPRESSION);
@@ -69,10 +72,10 @@ export class GengarParser {
   }
 
   ParseMain(): MainDeclare {
-    let body: ASTNode[];
+    let body: BlockStatement;
     const startToken = this.lexer.CurrentToken;
     this.lexer.SkipTo([tt.LeftBracket]);
-    body = this.ParseBody();
+    body = this.ParseBlockStatement();
 
     return new MainDeclare(
       body,
@@ -85,13 +88,13 @@ export class GengarParser {
   ParseFn(): FunctionDeclare {
     let id: Identifier | undefined;
     let params: Identifier[] = [];
-    let body: ASTNode[] = [];
+    let body: BlockStatement;
     const token = this.lexer.CurrentToken;
 
     const skippedIdTokens = this.lexer.SkipTo([tt.LeftParenthesis]);
     params = this.ParseParams();
     this.lexer.SkipTo([tt.LeftBracket]);
-    body = this.ParseBody();
+    body = this.ParseBlockStatement();
     const idToken = skippedIdTokens.find((t) => t.Type === tt.ID);
 
     if (idToken) {
@@ -117,8 +120,9 @@ export class GengarParser {
     );
   }
 
-  ParseBody(): ASTNode[] {
+  ParseBlockStatement(): BlockStatement {
     const body: ASTNode[] = [];
+    let prevToken = this.lexer.CurrentToken;
 
     while (this.lexer.CurrentToken?.Type !== tt.RightBracket) {
       if (this.lexer.CurrentToken?.Type === tt.Keywords) {
@@ -131,10 +135,14 @@ export class GengarParser {
         body.push(new ExpressionStatement(this.ParseExpression()));
       }
 
-      this.lexer.GetToken();
+      if (this.lexer.CurrentToken !== prevToken) {
+        prevToken = this.lexer.CurrentToken;
+        continue;
+      }
+      prevToken = this.lexer.GetToken();
     }
 
-    return body;
+    return new BlockStatement(body, this.sourceFile);
   }
 
   ParseStatement(): Statement {
@@ -249,7 +257,58 @@ export class GengarParser {
   }
 
   ParseIfStatement(): IfStatement {
-    throw new Error();
+    let test: Expression;
+    let consequent: BlockStatement;
+    let alternate: IfStatement | BlockStatement | undefined;
+
+    //skip if
+    this.lexer.Skip();
+    this.lexer.SkipOf([tt.WhiteSpace]);
+
+    if (this.lexer.CurrentToken?.Type !== tt.LeftParenthesis) {
+      throw new UnexpectedTokenError(
+        "(",
+        this.lexer.CurrentToken?.Val as string
+      );
+    }
+    // skip (
+    this.lexer.Skip();
+
+    test = this.ParseExpression();
+    this.lexer.SkipTo([tt.LeftBracket]);
+    consequent = this.ParseBlockStatement();
+    this.lexer.SkipTo([tt.Keywords]);
+
+    if (this.lexer.CurrentToken?.Val === "else") {
+      this.lexer.Save();
+      this.lexer.SkipOf([tt.WhiteSpace]);
+
+      if (
+        //@ts-ignore
+        this.lexer.CurrentToken.Type === tt.Keywords &&
+        //@ts-ignore
+        this.lexer.CurrentToken.Val === "if"
+      ) {
+        alternate = this.ParseIfStatement();
+        //@ts-ignore
+      } else if (this.lexer.CurrentToken.Type === tt.LeftBracket) {
+        alternate = this.ParseBlockStatement();
+      } else {
+        this.lexer.BackTracking();
+        throw new Error(
+          `expect If / BlockStatement after else, but got ${this.lexer.CurrentToken} `
+        );
+      }
+    }
+
+    return new IfStatement(
+      test.Line,
+      test.Col,
+      this.sourceFile,
+      test,
+      consequent,
+      alternate
+    );
   }
 
   ParseWhileStatement(): WhileStatement {

@@ -37,6 +37,21 @@ export class ExpressionStatement extends Statement {
   }
 }
 
+export class BlockStatement extends Statement {
+  Generate(): SourceNode {
+    return this.CreateSourceNode().add('{\n').add(this.Body.map(n => n.Generate())).add("\n}");
+  }
+  constructor(public Body: Statement[], file: string) {
+    super(
+      1,
+      0,
+      NodeType.BlockStatement,
+      file!
+    );
+  }
+}
+
+
 export enum NodeType {
   Unknown,
   Program,
@@ -49,6 +64,7 @@ export enum NodeType {
   ReturnStatement,
   DebuggerStatement,
   ExpressionStatement,
+  BlockStatement,
   AssignExpression,
   CallExpression,
   Identifier,
@@ -72,11 +88,11 @@ export class Program extends ASTNode {
 export class MainDeclare extends ASTNode {
   Generate(): SourceNode {
     return this.CreateSourceNode()
-      .add(";(function(){")
-      .add(this.Body.map((n) => n.Generate()))
-      .add("})();\n");
+      .add(";(function()")
+      .add(this.Body.Generate())
+      .add(")();\n");
   }
-  constructor(public Body: ASTNode[], line: number, col: number, file: string) {
+  constructor(public Body: BlockStatement, line: number, col: number, file: string) {
     super(line, col, NodeType.MainDeclare, file);
   }
 }
@@ -88,14 +104,13 @@ export class FunctionDeclare extends ASTNode {
       .add(this.Id.Generate())
       .add("(")
       .add(this.Params.map((p) => p.Generate()))
-      .add(") {")
-      .add(this.Body.map((n) => n.Generate()))
-      .add("}");
+      .add(") ")
+      .add(this.Body.Generate())
   }
   constructor(
     public Id: Identifier,
     public Params: Identifier[],
-    public Body: ASTNode[],
+    public Body: BlockStatement,
     line: number,
     col: number,
     file: string
@@ -143,14 +158,13 @@ export class VarDeclare extends Statement {
 export class IfStatement extends Statement {
   Generate(): SourceNode {
     let ret = this.CreateSourceNode()
-      .add("if(")
+      .add("\nif(")
       .add(this.Test.Generate())
-      .add("){\n")
+      .add(")")
       .add(this.Consequent.Generate())
-      .add("\n}");
 
     if (this.Alternate) {
-      ret.add("else").add(this.Alternate.Generate());
+      ret.add("else ").add(this.Alternate.Generate());
     }
 
     return ret;
@@ -160,8 +174,8 @@ export class IfStatement extends Statement {
     col: number,
     file: string,
     public Test: Expression,
-    public Consequent: Statement,
-    public Alternate?: Statement
+    public Consequent: BlockStatement,
+    public Alternate?: IfStatement | BlockStatement
   ) {
     super(line, col, NodeType.VarDeclare, file);
   }
@@ -172,9 +186,8 @@ export class WhileStatement extends Statement {
     return this.CreateSourceNode()
       .add("while(")
       .add(this.Test.Generate())
-      .add("){\n")
+      .add(")")
       .add(this.Body.Generate())
-      .add("\n}");
   }
 
   constructor(
@@ -182,9 +195,9 @@ export class WhileStatement extends Statement {
     col: number,
     file: string,
     public Test: Expression,
-    public Body: Statement
+    public Body: BlockStatement
   ) {
-    super(line, col, NodeType.VarDeclare, file);
+    super(line, col, NodeType.WhileStatement, file);
   }
 }
 

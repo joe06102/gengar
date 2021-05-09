@@ -6,14 +6,12 @@
   "configurations": [
     {
       "name": "ggc",
-      "type": "node",
+      "type": "pwa-node",
       "request": "launch",
-      "protocol": "inspector",
       "runtimeExecutable": "npm",
       "stopOnEntry": true,
       "sourceMaps": true,
-      "runtimeArgs": ["run-script", "ggc"],
-      "cwd": "/home/joe/repos/gengar"
+      "runtimeArgs": ["run-script", "ggc"]
     },
     {
       "name": "hello",

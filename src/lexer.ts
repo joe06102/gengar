@@ -141,6 +141,21 @@ export class GengarLexer {
     return skippedTokens;
   }
 
+  SkipToValueOf(tokenType: tt, val: string) {
+    let skippedTokens: Token[] = [];
+    let curToken = this.GetToken();
+
+    while (
+      curToken.Type !== tt.EOF &&
+      (curToken.Type !== tokenType || curToken.Val !== val)
+    ) {
+      skippedTokens.push(curToken);
+      curToken = this.GetToken();
+    }
+
+    return skippedTokens;
+  }
+
   Save() {
     this.savePoint = {
       pos: this.pos,
