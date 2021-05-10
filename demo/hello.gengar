@@ -1,7 +1,8 @@
 main(): number {
     const text: string =  "hello gengar!";
     mut num: number = 123;
-    num = 456;
+    num = 456 + 789 + num;
+    print(num);
     debugger;
     mut megaText: string = toUpperCase(text);
     print(text, "evolves to", megaText);
@@ -33,9 +34,9 @@ main(): number {
       print("else");
     }
 
-    mut i: number = 1;
+    mut i: number = 10;
     while(i) {
-      i = 0;
+      i -= 1;
       print(i);
     }
 

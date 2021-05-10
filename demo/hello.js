@@ -4,7 +4,8 @@ function print(...args) {
 (function () {
   const text = "hello gengar!";
   let num = 123;
-  num = 456;
+  num = 456 + 789 + num;
+  print(num);
   debugger;
   let megaText = toUpperCase(text);
   print(text, "evolves to", megaText);
@@ -30,9 +31,9 @@ function print(...args) {
   } else {
     print("else");
   }
-  let i = 1;
+  let i = 10;
   while (i) {
-    i = 0;
+    i -= 1;
     print(i);
   }
   return 0;

@@ -14,7 +14,8 @@ export enum TokenTypes {
   WhiteSpace,
   CRLF,
   TypeAsset,
-  Eq,
+  AssignOperator,
+  BinaryOperator,
   EOF,
 }
 
@@ -47,6 +48,7 @@ export const TokenMatcher = {
   Dot: /^(\.)/,
   WhiteSpace: /^(\s+)/,
   CRLF: /^(\r?\n+)/,
-  Eq: /^(=)/,
+  AssignOperator: /^((?:\+|-|\*|\/)*=)/,
+  BinaryOperator: /^(\+|-|\*|\/)/,
   TypeAssert: /^(:\s*(?:string|number|boolean))/,
 };

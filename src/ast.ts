@@ -1,4 +1,5 @@
 import { SourceNode } from "source-map";
+import { UnexpectedTokenError } from "./error";
 export abstract class ASTNode {
   Line: number;
   Col: number;
@@ -207,12 +208,39 @@ export class AssignExpression extends Expression {
   Generate(): SourceNode {
     return this.CreateSourceNode()
       .add(this.Id.Generate())
-      .add(" = ")
+      .add(` ${this.Operator} `)
       .add(this.Init.Generate());
   }
   constructor(
     public Id: Identifier | MemberExpression,
     public Init: Expression,
+    public Operator: string,
+    line: number,
+    col: number,
+    file: string
+  ) {
+    super(line, col, NodeType.CallExpression, file);
+  }
+}
+
+export class BinaryExpression extends Expression {
+  Generate(): SourceNode {
+    if (this.Left == null) {
+      throw new UnexpectedTokenError(
+        `Literal | MemberExpression | CallExpression | Identifier`,
+        `${this.Left}`
+      );
+    }
+
+    return this.CreateSourceNode()
+      .add(this.Left.Generate())
+      .add(` ${this.Operator} `)
+      .add(this.Right.Generate());
+  }
+  constructor(
+    public Left: Expression | null,
+    public Right: Expression,
+    public Operator: string,
     line: number,
     col: number,
     file: string

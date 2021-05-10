@@ -3,6 +3,7 @@ import { Token, TokenTypes as tt } from "./token";
 import {
   AssignExpression,
   ASTNode,
+  BinaryExpression,
   BlockStatement,
   BooleanLiteral,
   CallExpression,
@@ -24,13 +25,20 @@ import {
   WhileStatement,
 } from "./ast";
 import { UnexpectedTokenError } from "./error";
+
+// Left Recursion Removal
+// EXPRESSION       -> NONRECURSE BINARYEXP'
+// NONRECURSE       -> CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
+// BINARYEXP'       -> operator EXPRESSION BINARYEXP' | ε
+
 /**
  * S                -> MAIN | FN
  * MAIN             -> main(): TYPEANNOTATION BLOCKSTATEMENT
  * FN               -> fn IDENTIFIER(PARAMS) BLOCKSTATEMENT
  * BLOCKSTATEMENT   -> { STATEMENT* | EXPRESSION* }
  * STATEMENT        -> VARDECLARE | IF | WHILE | RETURN | DEBUGGER
- * EXPRESSION       -> ASSIGNEXP | CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
+ * EXPRESSION       -> ASSIGNEXP | BINARYEXPRESSION | CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
+ * BINARYEXPRESSION -> EXPRESSION operator EXPRESSION (Left Recursion)
  * VARDECLARE       -> VARKIND IDENTIFIER : TYPEANNOTATION = EXPRESSION;
  * IF               -> if (EXPRESSION) BLOCKSTATEMENT else IF | BLOCKSTATEMENT
  * VARKIND          -> const | mut
@@ -180,6 +188,20 @@ export class GengarParser {
   }
 
   ParseExpression(): Expression {
+    const nonRecursive = this.ParseNonRecursiveExpression();
+    this.lexer.SkipOf([tt.WhiteSpace], true);
+    const binary = this.ParseBinaryExpression();
+
+    if (binary) {
+      binary.Left = nonRecursive;
+      binary.Col = nonRecursive.Col;
+      return binary;
+    }
+
+    return nonRecursive;
+  }
+
+  ParseNonRecursiveExpression(): Expression {
     const val = this.lexer.CurrentToken?.Val;
     const type = this.lexer.CurrentToken?.Type;
     const nextToken = this.lexer.Peek();
@@ -208,7 +230,7 @@ export class GengarParser {
       this.lexer.Save();
       this.lexer.SkipOf([tt.WhiteSpace]);
 
-      if (this.lexer.CurrentToken?.Type === tt.Eq) {
+      if (this.lexer.CurrentToken?.Type === tt.AssignOperator) {
         this.lexer.BackTracking();
         return this.ParseAssignExpression();
       }
@@ -221,6 +243,38 @@ export class GengarParser {
     }
 
     throw new Error(`unknown expression token: ${this.lexer.CurrentToken}`);
+  }
+
+  ParseBinaryExpression(): BinaryExpression | null {
+    const operator = this.lexer.CurrentToken;
+
+    if (operator?.Type !== tt.BinaryOperator) {
+      return null;
+    }
+
+    this.lexer.SkipOf([tt.WhiteSpace]);
+    const right = this.ParseExpression();
+    const nestBinaryExpression = this.ParseBinaryExpression();
+
+    if (nestBinaryExpression) {
+      return new BinaryExpression(
+        nestBinaryExpression,
+        right,
+        operator.Val as string,
+        nestBinaryExpression.Line,
+        nestBinaryExpression.Col,
+        this.sourceFile
+      );
+    }
+
+    return new BinaryExpression(
+      null,
+      right,
+      operator.Val as string,
+      right.Line,
+      right.Col,
+      this.sourceFile
+    );
   }
 
   ParseValDeclareStatement(): VarDeclare {
@@ -247,7 +301,7 @@ export class GengarParser {
       this.sourceFile
     );
     // TODO: Missing TypeAnnotation
-    this.lexer.SkipTo([tt.Eq]);
+    this.lexer.SkipTo([tt.AssignOperator]);
     this.lexer.SkipOf([tt.WhiteSpace]);
     init = this.ParseExpression();
 
@@ -378,13 +432,23 @@ export class GengarParser {
 
   ParseAssignExpression(): AssignExpression {
     const id = this.lexer.CurrentToken;
-    this.lexer.SkipOf([tt.WhiteSpace, tt.Eq]);
+    this.lexer.SkipOf([tt.WhiteSpace]);
+    const operator = this.lexer.CurrentToken;
+    this.lexer.SkipOf([tt.AssignOperator, tt.WhiteSpace], true);
     const init = this.ParseExpression();
+
+    if (operator?.Type !== tt.AssignOperator) {
+      throw new UnexpectedTokenError(
+        "assign operator",
+        operator?.Val as string
+      );
+    }
 
     if (id?.Type === tt.ID && init instanceof Expression) {
       return new AssignExpression(
         new Identifier(id.Val as string, id.Line, id.Col, this.sourceFile),
         init,
+        operator.Val as string,
         id.Line,
         id.Col,
         this.sourceFile

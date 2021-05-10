@@ -47,8 +47,10 @@ export class GengarLexer {
       t = new Token(tt.WhiteSpace, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.TypeAssert)?.[1])) {
       t = new Token(tt.TypeAsset, match!, this.line, this.col);
-    } else if ((match = this.source.match(TokenMatcher.Eq)?.[1])) {
-      t = new Token(tt.Eq, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.AssignOperator)?.[1])) {
+      t = new Token(tt.AssignOperator, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.BinaryOperator)?.[1])) {
+      t = new Token(tt.BinaryOperator, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.StringLiteral)?.[1])) {
       t = new Token(tt.StringLiteral, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.NumberLiteral)?.[1])) {
