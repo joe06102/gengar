@@ -1,5 +1,6 @@
 export enum TokenTypes {
   Keywords,
+  Marks,
   ID,
   StringLiteral,
   NumberLiteral,
@@ -16,6 +17,7 @@ export enum TokenTypes {
   TypeAsset,
   AssignOperator,
   BinaryOperator,
+  UnaryOperator,
   EOF,
 }
 
@@ -34,6 +36,7 @@ export class Token {
 
 export const TokenMatcher = {
   Keywords: /^(if|else|while|return|debugger|const|mut)/,
+  Marks: /^(\?|\:|\.|,|;)/,
   ID: /^(\w+)/,
   Return: /^(return)/,
   StringLiteral: /^("[^"]*")/,
@@ -49,6 +52,7 @@ export const TokenMatcher = {
   WhiteSpace: /^(\s+)/,
   CRLF: /^(\r?\n+)/,
   AssignOperator: /^((?:\+|-|\*|\/)*=)/,
+  UnaryOperator: /^(!+|~)/,
   BinaryOperator: /^(\+|-|\*|\/)/,
   TypeAssert: /^(:\s*(?:string|number|boolean))/,
 };

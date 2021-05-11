@@ -7,6 +7,7 @@ import {
   BlockStatement,
   BooleanLiteral,
   CallExpression,
+  ConditionalExpression,
   DebuggerNode,
   Expression,
   ExpressionStatement,
@@ -21,15 +22,17 @@ import {
   Statement,
   StringLiteral,
   TypeAnotation,
+  UnaryExpression,
   VarDeclare,
   WhileStatement,
 } from "./ast";
 import { UnexpectedTokenError } from "./error";
 
 // Left Recursion Removal
-// EXPRESSION       -> NONRECURSE BINARYEXP'
+// EXPRESSION       -> NONRECURSE BINARYEXP' | NONRECURSE TERNARYEXP'
 // NONRECURSE       -> CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
 // BINARYEXP'       -> operator EXPRESSION BINARYEXP' | ε
+// TERNARYEXP'      -> ? EXPRESSION TERNARYEXP' : EXPRESSION TERNARYEXP'  | ε
 
 /**
  * S                -> MAIN | FN
@@ -37,11 +40,12 @@ import { UnexpectedTokenError } from "./error";
  * FN               -> fn IDENTIFIER(PARAMS) BLOCKSTATEMENT
  * BLOCKSTATEMENT   -> { STATEMENT* | EXPRESSION* }
  * STATEMENT        -> VARDECLARE | IF | WHILE | RETURN | DEBUGGER
- * EXPRESSION       -> ASSIGNEXP | BINARYEXPRESSION | CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
+ * EXPRESSION       -> ASSIGNEXP | UNARYEXPRESSION | BINARYEXPRESSION | TERNARYEXPRESSION | CALLEXP | MEMBEREXP | IDENTIFIER | LITERAL
+ * UNARYEXPRESSION  -> operator EXPRESSION
  * BINARYEXPRESSION -> EXPRESSION operator EXPRESSION (Left Recursion)
- * VARDECLARE       -> VARKIND IDENTIFIER : TYPEANNOTATION = EXPRESSION;
+ * TERNARYEXPRESSION-> EXPRESSION ? EXPRESSION : EXPRESSION (Left Recursion)
+ * VARDECLARE       -> kind IDENTIFIER : TYPEANNOTATION = EXPRESSION;
  * IF               -> if (EXPRESSION) BLOCKSTATEMENT else IF | BLOCKSTATEMENT
- * VARKIND          -> const | mut
  * ASSIGNEXP        -> IDENTIFIER | MEMBEREXP = EXPRESSION
  * CALLEXP          -> IDENTIFIER(EXPRESSION) | MEMBEREXP(EXPRESSION);
  * MEMBEREXP        -> IDENTIFIER.IDENTIFIER | . MEMBEREXP
@@ -190,12 +194,27 @@ export class GengarParser {
   ParseExpression(): Expression {
     const nonRecursive = this.ParseNonRecursiveExpression();
     this.lexer.SkipOf([tt.WhiteSpace], true);
-    const binary = this.ParseBinaryExpression();
 
-    if (binary) {
-      binary.Left = nonRecursive;
-      binary.Col = nonRecursive.Col;
-      return binary;
+    if (this.lexer.CurrentToken?.Type === tt.BinaryOperator) {
+      const binary = this.ParseBinaryExpression();
+
+      if (binary) {
+        binary.Left = nonRecursive;
+        binary.Col = nonRecursive.Col;
+        return binary;
+      }
+    }
+
+    if (
+      this.lexer.CurrentToken?.Type === tt.Marks &&
+      this.lexer.CurrentToken.Val === "?"
+    ) {
+      const conditional = this.ParseConditionalExpression();
+
+      if (conditional) {
+        conditional.Test = nonRecursive;
+        return conditional;
+      }
     }
 
     return nonRecursive;
@@ -208,6 +227,10 @@ export class GengarParser {
 
     if ([tt.StringLiteral, tt.NumberLiteral, tt.BoolLiteral].includes(type!)) {
       return this.ParseLiteralExpression();
+    }
+
+    if (type == tt.UnaryOperator) {
+      return this.ParseUnaryExpression();
     }
 
     if (type === tt.ID && nextToken.Type === tt.Dot) {
@@ -274,6 +297,68 @@ export class GengarParser {
       right.Line,
       right.Col,
       this.sourceFile
+    );
+  }
+
+  ParseUnaryExpression(): UnaryExpression {
+    const operator = this.lexer.CurrentToken;
+    this.lexer.Skip();
+    const exp = this.ParseExpression();
+
+    return new UnaryExpression(
+      exp,
+      operator?.Val as string,
+      operator?.Line ?? 0,
+      exp.Col,
+      this.sourceFile
+    );
+  }
+
+  ParseConditionalExpression(): ConditionalExpression | null {
+    if (this.lexer.CurrentToken?.Val !== "?") {
+      return null;
+    }
+
+    this.lexer.SkipOf([tt.WhiteSpace]);
+
+    let consequent = this.ParseExpression();
+    const nestConsequent = this.ParseConditionalExpression();
+
+    if (this.lexer.CurrentToken.Type === tt.WhiteSpace) {
+      this.lexer.SkipOf([tt.WhiteSpace], true);
+    }
+
+    if (
+      this.lexer.CurrentToken?.Type !== tt.Marks ||
+      //@ts-ignore
+      this.lexer.CurrentToken?.Val !== ":"
+    ) {
+      throw new UnexpectedTokenError(
+        ":",
+        this.lexer.CurrentToken?.Val as string
+      );
+    }
+    this.lexer.SkipOf([tt.WhiteSpace, tt.Marks]);
+    let alternate = this.ParseExpression();
+    const nestAlternate = this.ParseConditionalExpression();
+
+    if (nestConsequent) {
+      nestConsequent.Test = consequent;
+      consequent = nestConsequent;
+    }
+
+    if (nestAlternate) {
+      nestAlternate.Test = alternate;
+      alternate = nestAlternate;
+    }
+
+    return new ConditionalExpression(
+      consequent.Line,
+      consequent.Col,
+      this.sourceFile,
+      null,
+      consequent,
+      alternate
     );
   }
 

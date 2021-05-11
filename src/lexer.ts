@@ -49,6 +49,8 @@ export class GengarLexer {
       t = new Token(tt.TypeAsset, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.AssignOperator)?.[1])) {
       t = new Token(tt.AssignOperator, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.UnaryOperator)?.[1])) {
+      t = new Token(tt.UnaryOperator, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.BinaryOperator)?.[1])) {
       t = new Token(tt.BinaryOperator, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.StringLiteral)?.[1])) {
@@ -65,6 +67,8 @@ export class GengarLexer {
       t = new Token(tt.Dot, match!, this.line, this.col);
     } else if ((match = this.source.match(TokenMatcher.ID)?.[1])) {
       t = new Token(tt.ID, match!, this.line, this.col);
+    } else if ((match = this.source.match(TokenMatcher.Marks)?.[1])) {
+      t = new Token(tt.Marks, match!, this.line, this.col);
     } else {
       throw new Error(
         `unknow token: ${match}, position: ${this.pos}, line: ${this.line}, col: ${this.col}\nsource: ${this.source}`

@@ -8,18 +8,19 @@ function print(...args) {
   print(num);
   debugger;
   let megaText = toUpperCase(text);
+  megaText = num ? (num ? megaText : "damn") : "damn";
   print(text, "evolves to", megaText);
-  if (isValid(num)) {
+  if (!isValid(num)) {
     print("if");
-    if (isValid(num)) {
+    if (!!isValid(num)) {
       print("if");
-    } else if (text) {
+    } else if (~text) {
       print("else if");
     } else {
       print("else");
     }
   }
-  if (isValid(num)) {
+  if (~~isValid(num)) {
     print("if");
   } else if (text) {
     print("else if");

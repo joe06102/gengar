@@ -1,5 +1,31 @@
 import { SourceNode } from "source-map";
 import { UnexpectedTokenError } from "./error";
+
+export enum NodeType {
+  Unknown,
+  Program,
+  MainDeclare,
+  FunctionDeclare,
+  TypeAnotation,
+  VarDeclare,
+  IfStatement,
+  WhileStatement,
+  ReturnStatement,
+  DebuggerStatement,
+  ExpressionStatement,
+  BlockStatement,
+  AssignExpression,
+  UnaryExpression,
+  BinaryExpression,
+  ConditionalExpression,
+  CallExpression,
+  Identifier,
+  MemberExpression,
+  StringLiteral,
+  NumberLiteral,
+  BoolLiteral,
+}
+
 export abstract class ASTNode {
   Line: number;
   Col: number;
@@ -48,28 +74,6 @@ export class BlockStatement extends Statement {
   constructor(public Body: Statement[], file: string) {
     super(1, 0, NodeType.BlockStatement, file!);
   }
-}
-
-export enum NodeType {
-  Unknown,
-  Program,
-  MainDeclare,
-  FunctionDeclare,
-  TypeAnotation,
-  VarDeclare,
-  IfStatement,
-  WhileStatement,
-  ReturnStatement,
-  DebuggerStatement,
-  ExpressionStatement,
-  BlockStatement,
-  AssignExpression,
-  CallExpression,
-  Identifier,
-  MemberExpression,
-  StringLiteral,
-  NumberLiteral,
-  BoolLiteral,
 }
 
 export class Program extends ASTNode {
@@ -180,7 +184,7 @@ export class IfStatement extends Statement {
     public Consequent: BlockStatement,
     public Alternate?: IfStatement | BlockStatement
   ) {
-    super(line, col, NodeType.VarDeclare, file);
+    super(line, col, NodeType.IfStatement, file);
   }
 }
 
@@ -219,7 +223,25 @@ export class AssignExpression extends Expression {
     col: number,
     file: string
   ) {
-    super(line, col, NodeType.CallExpression, file);
+    super(line, col, NodeType.AssignExpression, file);
+  }
+}
+
+export class UnaryExpression extends Expression {
+  Generate(): SourceNode {
+    return this.CreateSourceNode()
+      .add(`${this.Operator}`)
+      .add(this.Expression.Generate());
+  }
+
+  constructor(
+    public Expression: Expression,
+    public Operator: string,
+    line: number,
+    col: number,
+    file: string
+  ) {
+    super(line, col, NodeType.UnaryExpression, file);
   }
 }
 
@@ -245,7 +267,32 @@ export class BinaryExpression extends Expression {
     col: number,
     file: string
   ) {
-    super(line, col, NodeType.CallExpression, file);
+    super(line, col, NodeType.BinaryExpression, file);
+  }
+}
+
+export class ConditionalExpression extends Expression {
+  Generate(): SourceNode {
+    if (this.Test == null) {
+      throw new UnexpectedTokenError(`Expression`, `${this.Test}`);
+    }
+
+    return this.CreateSourceNode()
+      .add(this.Test.Generate())
+      .add(" ? ")
+      .add(this.Consequent.Generate())
+      .add(" : ")
+      .add(this.Alternate?.Generate());
+  }
+  constructor(
+    line: number,
+    col: number,
+    file: string,
+    public Test: Expression | null,
+    public Consequent: Expression,
+    public Alternate: Expression
+  ) {
+    super(line, col, NodeType.ConditionalExpression, file);
   }
 }
 

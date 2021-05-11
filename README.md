@@ -11,7 +11,7 @@ A toy language that targeting javascript just for fun!
 - ✔ Sourcemap
 - ✔ If Statement
 - ✔ While Statement
-- ❌ Unary Expression
-- ❌ Binary Expression
-- ❌ Ternary Expression
+- ✔ Unary Expression
+- ✔ Binary Expression
+- ✔ Ternary Expression
 - ❌ Type Checker
